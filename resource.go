@@ -20,10 +20,9 @@ import (
 	"os"
 	"time"
 
-	"google.golang.org/protobuf/encoding/protojson"
+	protoyaml "github.com/bufbuild/protoyaml-go"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"gopkg.in/yaml.v2"
 
 	bootstrapv3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -59,22 +58,16 @@ func ReadConfig(filepath string) (*bootstrapv3.Bootstrap, error) {
 		return nil, err
 	}
 	var bsc bootstrapv3.Bootstrap
-	popt := protojson.UnmarshalOptions{
-		AllowPartial:   true,
-		DiscardUnknown: false,
-	}
-	err = popt.Unmarshal(fb, &bsc)
-	// err = yaml.UnmarshalStrict(fb, &bsc)
+	err = protoyaml.Unmarshal(fb, &bsc)
 	if err != nil {
 		return nil, err
 	}
-	reyaml, _ := yaml.Marshal(bsc)
-	log.Printf("%s\n", string(reyaml))
 	log.Printf("%#v\n", bsc.GetStaticResources())
 	return &bsc, nil
 }
 
 func makeCluster(clusterName string) *cluster.Cluster {
+	routerConfig, _ := anypb.New(&router.Router{})
 	return &cluster.Cluster{
 		Name:                 clusterName,
 		ConnectTimeout:       durationpb.New(5 * time.Second),
@@ -82,6 +75,12 @@ func makeCluster(clusterName string) *cluster.Cluster {
 		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
 		LoadAssignment:       makeEndpoint(clusterName),
 		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
+		Filters: []*cluster.Filter{
+			{
+				Name:        "http-router",
+				TypedConfig: routerConfig,
+			},
+		},
 	}
 }
 
@@ -203,14 +202,18 @@ func makeConfigSource() *core.ConfigSource {
 
 func GenerateSnapshot(bc *bootstrapv3.Bootstrap) *cache.Snapshot {
 	var clusters []types.Resource
+	var listeners []types.Resource
 	for _, c := range bc.GetStaticResources().GetClusters() {
 		clusters = append(clusters, c)
+	}
+	for _, l := range bc.GetStaticResources().GetListeners() {
+		listeners = append(listeners, l)
 	}
 	snap, _ := cache.NewSnapshot("1",
 		map[resource.Type][]types.Resource{
 			resource.ClusterType: clusters,
 			// resource.RouteType:    {bc.},
-			// resource.ListenerType: {makeHTTPListener(ListenerName, RouteName)},
+			resource.ListenerType: listeners,
 		},
 	)
 	return snap

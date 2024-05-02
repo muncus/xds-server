@@ -18,6 +18,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"log/slog"
 	"os"
 
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
@@ -27,15 +28,20 @@ import (
 )
 
 var (
-	l      example.Logger
-	port   uint
-	nodeID string
-	config = flag.String("config", "", "bootstrap config to read and serve.")
+	l        example.Logger
+	port     uint
+	nodeID   string
+	config   = flag.String("config", "", "bootstrap config to read and serve.")
+	logLevel = new(slog.LevelVar)
 )
 
 func init() {
 	l = example.Logger{}
-
+	if l.Debug {
+		logLevel.Set(slog.LevelDebug)
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel}))
+	slog.SetDefault(logger)
 	flag.BoolVar(&l.Debug, "debug", false, "Enable xDS server debug logging")
 
 	// The port that this xDS server listens on
