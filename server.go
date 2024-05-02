@@ -34,6 +34,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/test/v3"
+	"google.golang.org/grpc/reflection"
 )
 
 const (
@@ -61,6 +62,7 @@ func (s *Server) registerServer(grpcServer *grpc.Server) {
 	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, s.xdsserver)
 	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, s.xdsserver)
 	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, s.xdsserver)
+	reflection.Register(grpcServer)
 }
 
 func (s *Server) Run(port uint) {
@@ -104,6 +106,7 @@ func registerServer(grpcServer *grpc.Server, server server.Server) {
 	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, server)
 	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, server)
 	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, server)
+	reflection.Register(grpcServer)
 }
 
 // RunServer starts an xDS server at the given port.

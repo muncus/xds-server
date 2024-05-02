@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"flag"
+	"log"
 	"os"
 
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
@@ -29,6 +30,7 @@ var (
 	l      example.Logger
 	port   uint
 	nodeID string
+	config = flag.String("config", "", "bootstrap config to read and serve.")
 )
 
 func init() {
@@ -49,8 +51,13 @@ func main() {
 	// Create a cache
 	cache := cache.NewSnapshotCache(false, cache.IDHash{}, l)
 
+	bc, err := example.ReadConfig(*config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Create the snapshot that we'll serve to Envoy
-	snapshot := example.GenerateSnapshot()
+	snapshot := example.GenerateSnapshot(bc)
 	if err := snapshot.Consistent(); err != nil {
 		l.Errorf("snapshot inconsistency: %+v\n%+v", snapshot, err)
 		os.Exit(1)

@@ -15,11 +15,17 @@
 package example
 
 import (
+	"io"
+	"log"
+	"os"
 	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"gopkg.in/yaml.v2"
 
+	bootstrapv3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -40,6 +46,33 @@ const (
 	UpstreamHost = "www.envoyproxy.io"
 	UpstreamPort = 80
 )
+
+// the config files usually given to envoy are a Bootstrap. Load one from the filesystem and use it to populate the Snapshot.
+func ReadConfig(filepath string) (*bootstrapv3.Bootstrap, error) {
+	f, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	fb, err := io.ReadAll(f)
+	log.Printf("config bytes: \n%s\n", string(fb))
+	if err != nil {
+		return nil, err
+	}
+	var bsc bootstrapv3.Bootstrap
+	popt := protojson.UnmarshalOptions{
+		AllowPartial:   true,
+		DiscardUnknown: false,
+	}
+	err = popt.Unmarshal(fb, &bsc)
+	// err = yaml.UnmarshalStrict(fb, &bsc)
+	if err != nil {
+		return nil, err
+	}
+	reyaml, _ := yaml.Marshal(bsc)
+	log.Printf("%s\n", string(reyaml))
+	log.Printf("%#v\n", bsc.GetStaticResources())
+	return &bsc, nil
+}
 
 func makeCluster(clusterName string) *cluster.Cluster {
 	return &cluster.Cluster{
@@ -168,12 +201,16 @@ func makeConfigSource() *core.ConfigSource {
 	return source
 }
 
-func GenerateSnapshot() *cache.Snapshot {
+func GenerateSnapshot(bc *bootstrapv3.Bootstrap) *cache.Snapshot {
+	var clusters []types.Resource
+	for _, c := range bc.GetStaticResources().GetClusters() {
+		clusters = append(clusters, c)
+	}
 	snap, _ := cache.NewSnapshot("1",
 		map[resource.Type][]types.Resource{
-			resource.ClusterType:  {makeCluster(ClusterName)},
-			resource.RouteType:    {makeRoute(RouteName, ClusterName)},
-			resource.ListenerType: {makeHTTPListener(ListenerName, RouteName)},
+			resource.ClusterType: clusters,
+			// resource.RouteType:    {bc.},
+			// resource.ListenerType: {makeHTTPListener(ListenerName, RouteName)},
 		},
 	)
 	return snap
