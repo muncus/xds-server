@@ -203,18 +203,28 @@ func makeConfigSource() *core.ConfigSource {
 func GenerateSnapshot(bc *bootstrapv3.Bootstrap) *cache.Snapshot {
 	var clusters []types.Resource
 	var listeners []types.Resource
+	var endpoints []types.Resource
 	for _, c := range bc.GetStaticResources().GetClusters() {
 		clusters = append(clusters, c)
+		endpoints = append(endpoints, c.GetLoadAssignment())
 	}
 	for _, l := range bc.GetStaticResources().GetListeners() {
 		listeners = append(listeners, l)
 	}
+	log.Printf("Clusters: %s", clusters)
+	log.Printf("Endpoints: %s", endpoints)
+	log.Printf("Listeners: %s", listeners)
 	snap, _ := cache.NewSnapshot("1",
 		map[resource.Type][]types.Resource{
 			resource.ClusterType: clusters,
 			// resource.RouteType:    {bc.},
 			resource.ListenerType: listeners,
+			resource.EndpointType: endpoints,
 		},
 	)
+	refs := cache.GetAllResourceReferences(snap.Resources)
+	log.Printf("References: %#v\n", refs[resource.EndpointType])
+	res := snap.GetResources(resource.EndpointType)
+	log.Printf("Resources: %#v\n", res)
 	return snap
 }

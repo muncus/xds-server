@@ -1,3 +1,24 @@
+# multipurpose xds
+
+This started as the example xds server from [`envoyproxy/go-control-plane`](),
+and several features have been added.
+
+It is intended to be used as a control plane for Grpc services to demonstrate
+fault tolerance features like Fault Injection and traffic direction.
+
+Added features:
+
+- load a yaml Bootstrap config for serving Listener and Cluster resources
+- support grpc service introspection
+-
+-
+
+## TODO:
+- [ ] document required resources from the config, and their simplest form.
+- [ ] custom grpc service config that creates the right resources
+- [ ] server-side xds integrations, allowing for fault injection on server side
+
+
 # Example xDS Server
 
 This is an example of a trivial xDS V3 control plane server.  It serves an Envoy configuration that's roughly equivalent to the one used by the Envoy ["Quick Start"](https://www.envoyproxy.io/docs/envoy/latest/start/start#quick-start-to-run-simple-example) docs: a simple http proxy.  You can run the example using the project top-level Makefile, e.g.:

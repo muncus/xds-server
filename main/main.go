@@ -41,7 +41,8 @@ func init() {
 		logLevel.Set(slog.LevelDebug)
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel}))
-	slog.SetDefault(logger)
+	_ = logger
+	// slog.SetDefault(logger)
 	flag.BoolVar(&l.Debug, "debug", false, "Enable xDS server debug logging")
 
 	// The port that this xDS server listens on
