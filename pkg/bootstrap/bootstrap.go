@@ -9,6 +9,10 @@ import (
 	bootstrapv3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+
+	// extensions we need to import for unmarshaling boostrap configs.
+	// oops, HTTPFault not supported on servers (at least in python)
+	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/fault/v3"
 )
 
 func NewFromFile(fname string) (*bootstrapv3.Bootstrap, error) {
